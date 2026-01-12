@@ -1,0 +1,926 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>api: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/giannuccilli/user-api/cmd/api/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/giannuccilli/user-api/internal/config/config.go (0.0%)</option>
+				
+				<option value="file2">github.com/giannuccilli/user-api/internal/handler/middleware.go (0.0%)</option>
+				
+				<option value="file3">github.com/giannuccilli/user-api/internal/handler/response.go (77.8%)</option>
+				
+				<option value="file4">github.com/giannuccilli/user-api/internal/handler/user.go (82.3%)</option>
+				
+				<option value="file5">github.com/giannuccilli/user-api/internal/repository/postgres/user.go (0.0%)</option>
+				
+				<option value="file6">github.com/giannuccilli/user-api/internal/service/user.go (61.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "log/slog"
+        "net/http"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/jackc/pgx/v5/pgxpool"
+
+        "github.com/giannuccilli/user-api/internal/config"
+        "github.com/giannuccilli/user-api/internal/handler"
+        "github.com/giannuccilli/user-api/internal/repository/postgres"
+        "github.com/giannuccilli/user-api/internal/service"
+)
+
+func main() <span class="cov0" title="0">{
+        cfg := config.Load()
+
+        var logLevel slog.Level
+        switch cfg.LogLevel </span>{
+        case "debug":<span class="cov0" title="0">
+                logLevel = slog.LevelDebug</span>
+        case "warn":<span class="cov0" title="0">
+                logLevel = slog.LevelWarn</span>
+        case "error":<span class="cov0" title="0">
+                logLevel = slog.LevelError</span>
+        default:<span class="cov0" title="0">
+                logLevel = slog.LevelInfo</span>
+        }
+
+        <span class="cov0" title="0">logger := slog.New(slog.NewJSONHandler(os.Stdout, &amp;slog.HandlerOptions{
+                Level: logLevel,
+        }))
+        slog.SetDefault(logger)
+
+        if cfg.DatabaseURL == "" </span><span class="cov0" title="0">{
+                logger.Error("DATABASE_URL is required")
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer cancel()
+
+        pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("failed to connect to database", slog.String("error", err.Error()))
+                os.Exit(1)
+        }</span>
+        <span class="cov0" title="0">defer pool.Close()
+
+        if err := pool.Ping(ctx); err != nil </span><span class="cov0" title="0">{
+                logger.Error("failed to ping database", slog.String("error", err.Error()))
+                os.Exit(1)
+        }</span>
+        <span class="cov0" title="0">logger.Info("connected to database")
+
+        userRepo := postgres.NewUserRepository(pool)
+        userService := service.NewUserService(userRepo)
+        userHandler := handler.NewUserHandler(userService)
+
+        mux := http.NewServeMux()
+        userHandler.RegisterRoutes(mux)
+
+        wrappedMux := handler.Chain(mux,
+                handler.Recovery(logger),
+                handler.Logging(logger),
+        )
+
+        server := &amp;http.Server{
+                Addr:         ":" + cfg.Port,
+                Handler:      wrappedMux,
+                ReadTimeout:  cfg.ReadTimeout,
+                WriteTimeout: cfg.WriteTimeout,
+        }
+
+        go func() </span><span class="cov0" title="0">{
+                logger.Info("starting server", slog.String("port", cfg.Port))
+                if err := server.ListenAndServe(); err != nil &amp;&amp; err != http.ErrServerClosed </span><span class="cov0" title="0">{
+                        logger.Error("server error", slog.String("error", err.Error()))
+                        os.Exit(1)
+                }</span>
+        }()
+
+        <span class="cov0" title="0">quit := make(chan os.Signal, 1)
+        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+        &lt;-quit
+
+        logger.Info("shutting down server...")
+
+        shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer shutdownCancel()
+
+        if err := server.Shutdown(shutdownCtx); err != nil </span><span class="cov0" title="0">{
+                logger.Error("server forced to shutdown", slog.String("error", err.Error()))
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("server stopped")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package config
+
+import (
+        "os"
+        "time"
+)
+
+type Config struct {
+        Port         string
+        DatabaseURL  string
+        LogLevel     string
+        ReadTimeout  time.Duration
+        WriteTimeout time.Duration
+}
+
+func Load() *Config <span class="cov0" title="0">{
+        return &amp;Config{
+                Port:         getEnv("PORT", "8080"),
+                DatabaseURL:  getEnv("DATABASE_URL", ""),
+                LogLevel:     getEnv("LOG_LEVEL", "info"),
+                ReadTimeout:  getDuration("READ_TIMEOUT", 5*time.Second),
+                WriteTimeout: getDuration("WRITE_TIMEOUT", 10*time.Second),
+        }
+}</span>
+
+func getEnv(key, defaultValue string) string <span class="cov0" title="0">{
+        if value := os.Getenv(key); value != "" </span><span class="cov0" title="0">{
+                return value
+        }</span>
+        <span class="cov0" title="0">return defaultValue</span>
+}
+
+func getDuration(key string, defaultValue time.Duration) time.Duration <span class="cov0" title="0">{
+        if value := os.Getenv(key); value != "" </span><span class="cov0" title="0">{
+                if d, err := time.ParseDuration(value); err == nil </span><span class="cov0" title="0">{
+                        return d
+                }</span>
+        }
+        <span class="cov0" title="0">return defaultValue</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package handler
+
+import (
+        "log/slog"
+        "net/http"
+        "runtime/debug"
+        "time"
+
+        "github.com/google/uuid"
+)
+
+type contextKey string
+
+const RequestIDKey contextKey = "requestID"
+
+type responseWriter struct {
+        http.ResponseWriter
+        status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) <span class="cov0" title="0">{
+        rw.status = code
+        rw.ResponseWriter.WriteHeader(code)
+}</span>
+
+func Logging(logger *slog.Logger) func(http.Handler) http.Handler <span class="cov0" title="0">{
+        return func(next http.Handler) http.Handler </span><span class="cov0" title="0">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                        start := time.Now()
+
+                        requestID := r.Header.Get("X-Request-ID")
+                        if requestID == "" </span><span class="cov0" title="0">{
+                                requestID = uuid.New().String()
+                        }</span>
+
+                        <span class="cov0" title="0">wrapped := &amp;responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+                        next.ServeHTTP(wrapped, r)
+
+                        logger.Info("request completed",
+                                slog.String("method", r.Method),
+                                slog.String("path", r.URL.Path),
+                                slog.Int("status", wrapped.status),
+                                slog.Duration("duration", time.Since(start)),
+                                slog.String("request_id", requestID),
+                        )</span>
+                })
+        }
+}
+
+func Recovery(logger *slog.Logger) func(http.Handler) http.Handler <span class="cov0" title="0">{
+        return func(next http.Handler) http.Handler </span><span class="cov0" title="0">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                        defer func() </span><span class="cov0" title="0">{
+                                if err := recover(); err != nil </span><span class="cov0" title="0">{
+                                        logger.Error("panic recovered",
+                                                slog.Any("error", err),
+                                                slog.String("stack", string(debug.Stack())),
+                                        )
+                                        ErrorWithMessage(w, http.StatusInternalServerError,
+                                                ErrCodeInternalError, "Internal server error")
+                                }</span>
+                        }()
+                        <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
+                })
+        }
+}
+
+func Chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler <span class="cov0" title="0">{
+        for i := len(middlewares) - 1; i &gt;= 0; i-- </span><span class="cov0" title="0">{
+                h = middlewares[i](h)
+        }</span>
+        <span class="cov0" title="0">return h</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "errors"
+        "net/http"
+
+        "github.com/giannuccilli/user-api/internal/domain"
+)
+
+type ErrorResponse struct {
+        Code    string   `json:"code"`
+        Message string   `json:"message"`
+        Details []string `json:"details,omitempty"`
+}
+
+const (
+        ErrCodeInvalidRequest = "INVALID_REQUEST"
+        ErrCodeInvalidID      = "INVALID_ID"
+        ErrCodeUserNotFound   = "USER_NOT_FOUND"
+        ErrCodeEmailExists    = "EMAIL_EXISTS"
+        ErrCodeInternalError  = "INTERNAL_ERROR"
+)
+
+func JSON(w http.ResponseWriter, status int, data any) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(status)
+        if data != nil </span><span class="cov8" title="1">{
+                json.NewEncoder(w).Encode(data)
+        }</span>
+}
+
+func Error(w http.ResponseWriter, err error) <span class="cov8" title="1">{
+        var status int
+        var errResp ErrorResponse
+
+        switch </span>{
+        case errors.Is(err, domain.ErrUserNotFound):<span class="cov8" title="1">
+                status = http.StatusNotFound
+                errResp = ErrorResponse{
+                        Code:    ErrCodeUserNotFound,
+                        Message: "User not found",
+                }</span>
+        case errors.Is(err, domain.ErrEmailExists):<span class="cov0" title="0">
+                status = http.StatusConflict
+                errResp = ErrorResponse{
+                        Code:    ErrCodeEmailExists,
+                        Message: "Email already exists",
+                }</span>
+        case errors.Is(err, domain.ErrInvalidInput):<span class="cov8" title="1">
+                status = http.StatusBadRequest
+                errResp = ErrorResponse{
+                        Code:    ErrCodeInvalidRequest,
+                        Message: "Invalid request data",
+                }</span>
+        default:<span class="cov0" title="0">
+                status = http.StatusInternalServerError
+                errResp = ErrorResponse{
+                        Code:    ErrCodeInternalError,
+                        Message: "Internal server error",
+                }</span>
+        }
+
+        <span class="cov8" title="1">JSON(w, status, errResp)</span>
+}
+
+func ErrorWithMessage(w http.ResponseWriter, status int, code, message string, details ...string) <span class="cov8" title="1">{
+        errResp := ErrorResponse{
+                Code:    code,
+                Message: message,
+                Details: details,
+        }
+        JSON(w, status, errResp)
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+
+        "github.com/google/uuid"
+
+        "github.com/giannuccilli/user-api/internal/domain"
+        "github.com/giannuccilli/user-api/internal/service"
+)
+
+type UserHandler struct {
+        service *service.UserService
+}
+
+func NewUserHandler(service *service.UserService) *UserHandler <span class="cov8" title="1">{
+        return &amp;UserHandler{service: service}
+}</span>
+
+func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        var req domain.CreateUserRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov8" title="1">{
+                ErrorWithMessage(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid JSON body")
+                return
+        }</span>
+
+        <span class="cov8" title="1">user, err := h.service.Create(r.Context(), req)
+        if err != nil </span><span class="cov8" title="1">{
+                Error(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Location", "/api/v1/users/"+user.ID.String())
+        JSON(w, http.StatusCreated, user)</span>
+}
+
+func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        idStr := r.PathValue("id")
+        id, err := uuid.Parse(idStr)
+        if err != nil </span><span class="cov8" title="1">{
+                ErrorWithMessage(w, http.StatusBadRequest, ErrCodeInvalidID, "Invalid user ID format")
+                return
+        }</span>
+
+        <span class="cov8" title="1">user, err := h.service.GetByID(r.Context(), id)
+        if err != nil </span><span class="cov8" title="1">{
+                Error(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">JSON(w, http.StatusOK, user)</span>
+}
+
+func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        limit := 20
+        offset := 0
+
+        if l := r.URL.Query().Get("limit"); l != "" </span><span class="cov0" title="0">{
+                if parsed, err := strconv.Atoi(l); err == nil </span><span class="cov0" title="0">{
+                        limit = parsed
+                }</span>
+        }
+
+        <span class="cov8" title="1">if o := r.URL.Query().Get("offset"); o != "" </span><span class="cov0" title="0">{
+                if parsed, err := strconv.Atoi(o); err == nil </span><span class="cov0" title="0">{
+                        offset = parsed
+                }</span>
+        }
+
+        <span class="cov8" title="1">users, err := h.service.List(r.Context(), limit, offset)
+        if err != nil </span><span class="cov0" title="0">{
+                Error(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">JSON(w, http.StatusOK, users)</span>
+}
+
+func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        idStr := r.PathValue("id")
+        id, err := uuid.Parse(idStr)
+        if err != nil </span><span class="cov8" title="1">{
+                ErrorWithMessage(w, http.StatusBadRequest, ErrCodeInvalidID, "Invalid user ID format")
+                return
+        }</span>
+
+        <span class="cov8" title="1">var req domain.UpdateUserRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov8" title="1">{
+                ErrorWithMessage(w, http.StatusBadRequest, ErrCodeInvalidRequest, "Invalid JSON body")
+                return
+        }</span>
+
+        <span class="cov8" title="1">user, err := h.service.Update(r.Context(), id, req)
+        if err != nil </span><span class="cov8" title="1">{
+                Error(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">JSON(w, http.StatusOK, user)</span>
+}
+
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        idStr := r.PathValue("id")
+        id, err := uuid.Parse(idStr)
+        if err != nil </span><span class="cov8" title="1">{
+                ErrorWithMessage(w, http.StatusBadRequest, ErrCodeInvalidID, "Invalid user ID format")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := h.service.Delete(r.Context(), id); err != nil </span><span class="cov8" title="1">{
+                Error(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusNoContent)</span>
+}
+
+func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) <span class="cov0" title="0">{
+        mux.HandleFunc("POST /api/v1/users", h.Create)
+        mux.HandleFunc("GET /api/v1/users", h.List)
+        mux.HandleFunc("GET /api/v1/users/{id}", h.GetByID)
+        mux.HandleFunc("PUT /api/v1/users/{id}", h.Update)
+        mux.HandleFunc("DELETE /api/v1/users/{id}", h.Delete)
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package postgres
+
+import (
+        "context"
+        "errors"
+
+        "github.com/google/uuid"
+        "github.com/jackc/pgx/v5"
+        "github.com/jackc/pgx/v5/pgxpool"
+
+        "github.com/giannuccilli/user-api/internal/domain"
+)
+
+type UserRepository struct {
+        pool *pgxpool.Pool
+}
+
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository <span class="cov0" title="0">{
+        return &amp;UserRepository{pool: pool}
+}</span>
+
+func (r *UserRepository) Create(ctx context.Context, user *domain.User) error <span class="cov0" title="0">{
+        query := `
+                INSERT INTO users (email, first_name, last_name, status)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, created_at, updated_at
+        `
+
+        err := r.pool.QueryRow(ctx, query,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.Status,
+        ).Scan(&amp;user.ID, &amp;user.CreatedAt, &amp;user.UpdatedAt)
+
+        if err != nil </span><span class="cov0" title="0">{
+                if isDuplicateKeyError(err) </span><span class="cov0" title="0">{
+                        return domain.ErrEmailExists
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) <span class="cov0" title="0">{
+        query := `
+                SELECT id, email, first_name, last_name, status, created_at, updated_at
+                FROM users
+                WHERE id = $1
+        `
+
+        user := &amp;domain.User{}
+        err := r.pool.QueryRow(ctx, query, id).Scan(
+                &amp;user.ID,
+                &amp;user.Email,
+                &amp;user.FirstName,
+                &amp;user.LastName,
+                &amp;user.Status,
+                &amp;user.CreatedAt,
+                &amp;user.UpdatedAt,
+        )
+
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, pgx.ErrNoRows) </span><span class="cov0" title="0">{
+                        return nil, domain.ErrUserNotFound
+                }</span>
+                <span class="cov0" title="0">return nil, err</span>
+        }
+
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) <span class="cov0" title="0">{
+        query := `
+                SELECT id, email, first_name, last_name, status, created_at, updated_at
+                FROM users
+                WHERE email = $1
+        `
+
+        user := &amp;domain.User{}
+        err := r.pool.QueryRow(ctx, query, email).Scan(
+                &amp;user.ID,
+                &amp;user.Email,
+                &amp;user.FirstName,
+                &amp;user.LastName,
+                &amp;user.Status,
+                &amp;user.CreatedAt,
+                &amp;user.UpdatedAt,
+        )
+
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, pgx.ErrNoRows) </span><span class="cov0" title="0">{
+                        return nil, domain.ErrUserNotFound
+                }</span>
+                <span class="cov0" title="0">return nil, err</span>
+        }
+
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]domain.User, int, error) <span class="cov0" title="0">{
+        countQuery := `SELECT COUNT(*) FROM users`
+        var total int
+        if err := r.pool.QueryRow(ctx, countQuery).Scan(&amp;total); err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        <span class="cov0" title="0">query := `
+                SELECT id, email, first_name, last_name, status, created_at, updated_at
+                FROM users
+                ORDER BY created_at DESC
+                LIMIT $1 OFFSET $2
+        `
+
+        rows, err := r.pool.Query(ctx, query, limit, offset)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        users := make([]domain.User, 0)
+        for rows.Next() </span><span class="cov0" title="0">{
+                var user domain.User
+                if err := rows.Scan(
+                        &amp;user.ID,
+                        &amp;user.Email,
+                        &amp;user.FirstName,
+                        &amp;user.LastName,
+                        &amp;user.Status,
+                        &amp;user.CreatedAt,
+                        &amp;user.UpdatedAt,
+                ); err != nil </span><span class="cov0" title="0">{
+                        return nil, 0, err
+                }</span>
+                <span class="cov0" title="0">users = append(users, user)</span>
+        }
+
+        <span class="cov0" title="0">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, 0, err
+        }</span>
+
+        <span class="cov0" title="0">return users, total, nil</span>
+}
+
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error <span class="cov0" title="0">{
+        query := `
+                UPDATE users
+                SET email = $1, first_name = $2, last_name = $3, status = $4, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+                RETURNING updated_at
+        `
+
+        err := r.pool.QueryRow(ctx, query,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.Status,
+                user.ID,
+        ).Scan(&amp;user.UpdatedAt)
+
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, pgx.ErrNoRows) </span><span class="cov0" title="0">{
+                        return domain.ErrUserNotFound
+                }</span>
+                <span class="cov0" title="0">if isDuplicateKeyError(err) </span><span class="cov0" title="0">{
+                        return domain.ErrEmailExists
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error <span class="cov0" title="0">{
+        query := `DELETE FROM users WHERE id = $1`
+
+        result, err := r.pool.Exec(ctx, query, id)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if result.RowsAffected() == 0 </span><span class="cov0" title="0">{
+                return domain.ErrUserNotFound
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func isDuplicateKeyError(err error) bool <span class="cov0" title="0">{
+        return err != nil &amp;&amp; err.Error() != "" &amp;&amp;
+                (contains(err.Error(), "duplicate key") || contains(err.Error(), "unique constraint"))
+}</span>
+
+func contains(s, substr string) bool <span class="cov0" title="0">{
+        return len(s) &gt;= len(substr) &amp;&amp; searchString(s, substr)
+}</span>
+
+func searchString(s, substr string) bool <span class="cov0" title="0">{
+        for i := 0; i &lt;= len(s)-len(substr); i++ </span><span class="cov0" title="0">{
+                if s[i:i+len(substr)] == substr </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package service
+
+import (
+        "context"
+        "errors"
+        "strings"
+
+        "github.com/google/uuid"
+
+        "github.com/giannuccilli/user-api/internal/domain"
+)
+
+type UserService struct {
+        repo domain.UserRepository
+}
+
+func NewUserService(repo domain.UserRepository) *UserService <span class="cov8" title="1">{
+        return &amp;UserService{repo: repo}
+}</span>
+
+func (s *UserService) Create(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) <span class="cov8" title="1">{
+        email := strings.TrimSpace(strings.ToLower(req.Email))
+        firstName := strings.TrimSpace(req.FirstName)
+        lastName := strings.TrimSpace(req.LastName)
+
+        if err := validateEmail(email); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if err := validateName(firstName, "firstName"); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if err := validateName(lastName, "lastName"); err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">existingUser, err := s.repo.GetByEmail(ctx, email)
+        if err != nil &amp;&amp; !errors.Is(err, domain.ErrUserNotFound) </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">if existingUser != nil </span><span class="cov8" title="1">{
+                return nil, domain.ErrEmailExists
+        }</span>
+
+        <span class="cov8" title="1">user := &amp;domain.User{
+                Email:     email,
+                FirstName: firstName,
+                LastName:  lastName,
+                Status:    domain.UserStatusActive,
+        }
+
+        if err := s.repo.Create(ctx, user); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return user, nil</span>
+}
+
+func (s *UserService) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) <span class="cov8" title="1">{
+        return s.repo.GetByID(ctx, id)
+}</span>
+
+func (s *UserService) List(ctx context.Context, limit, offset int) (*domain.UserList, error) <span class="cov8" title="1">{
+        if limit &lt;= 0 </span><span class="cov0" title="0">{
+                limit = 20
+        }</span>
+        <span class="cov8" title="1">if limit &gt; 100 </span><span class="cov0" title="0">{
+                limit = 100
+        }</span>
+        <span class="cov8" title="1">if offset &lt; 0 </span><span class="cov0" title="0">{
+                offset = 0
+        }</span>
+
+        <span class="cov8" title="1">users, total, err := s.repo.List(ctx, limit, offset)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;domain.UserList{
+                Data: users,
+                Pagination: domain.Pagination{
+                        Total:  total,
+                        Limit:  limit,
+                        Offset: offset,
+                },
+        }, nil</span>
+}
+
+func (s *UserService) Update(ctx context.Context, id uuid.UUID, req domain.UpdateUserRequest) (*domain.User, error) <span class="cov8" title="1">{
+        user, err := s.repo.GetByID(ctx, id)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">if req.Email != nil </span><span class="cov0" title="0">{
+                email := strings.TrimSpace(strings.ToLower(*req.Email))
+                if err := validateEmail(email); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov0" title="0">if email != user.Email </span><span class="cov0" title="0">{
+                        existingUser, err := s.repo.GetByEmail(ctx, email)
+                        if err != nil &amp;&amp; !errors.Is(err, domain.ErrUserNotFound) </span><span class="cov0" title="0">{
+                                return nil, err
+                        }</span>
+                        <span class="cov0" title="0">if existingUser != nil </span><span class="cov0" title="0">{
+                                return nil, domain.ErrEmailExists
+                        }</span>
+                        <span class="cov0" title="0">user.Email = email</span>
+                }
+        }
+
+        <span class="cov8" title="1">if req.FirstName != nil </span><span class="cov8" title="1">{
+                firstName := strings.TrimSpace(*req.FirstName)
+                if err := validateName(firstName, "firstName"); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">user.FirstName = firstName</span>
+        }
+
+        <span class="cov8" title="1">if req.LastName != nil </span><span class="cov0" title="0">{
+                lastName := strings.TrimSpace(*req.LastName)
+                if err := validateName(lastName, "lastName"); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">user.LastName = lastName</span>
+        }
+
+        <span class="cov8" title="1">if req.Status != nil </span><span class="cov0" title="0">{
+                if err := validateStatus(*req.Status); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">user.Status = *req.Status</span>
+        }
+
+        <span class="cov8" title="1">if err := s.repo.Update(ctx, user); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return user, nil</span>
+}
+
+func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error <span class="cov8" title="1">{
+        return s.repo.Delete(ctx, id)
+}</span>
+
+func validateEmail(email string) error <span class="cov8" title="1">{
+        if email == "" </span><span class="cov8" title="1">{
+                return domain.ErrInvalidInput
+        }</span>
+        <span class="cov8" title="1">if len(email) &gt; 255 </span><span class="cov0" title="0">{
+                return domain.ErrInvalidInput
+        }</span>
+        <span class="cov8" title="1">if !strings.Contains(email, "@") || !strings.Contains(email, ".") </span><span class="cov8" title="1">{
+                return domain.ErrInvalidInput
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func validateName(name, field string) error <span class="cov8" title="1">{
+        if name == "" </span><span class="cov8" title="1">{
+                return domain.ErrInvalidInput
+        }</span>
+        <span class="cov8" title="1">if len(name) &gt; 100 </span><span class="cov0" title="0">{
+                return domain.ErrInvalidInput
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func validateStatus(status domain.UserStatus) error <span class="cov0" title="0">{
+        switch status </span>{
+        case domain.UserStatusActive, domain.UserStatusInactive, domain.UserStatusSuspended:<span class="cov0" title="0">
+                return nil</span>
+        default:<span class="cov0" title="0">
+                return domain.ErrInvalidInput</span>
+        }
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
