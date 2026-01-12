@@ -11,11 +11,12 @@ import (
 )
 
 type UserService struct {
-	repo domain.UserRepository
+	repo     domain.UserRepository
+	notifier domain.UserNotifier
 }
 
-func NewUserService(repo domain.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo domain.UserRepository, notifier domain.UserNotifier) *UserService {
+	return &UserService{repo: repo, notifier: notifier}
 }
 
 func (s *UserService) Create(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) {
@@ -51,6 +52,8 @@ func (s *UserService) Create(ctx context.Context, req domain.CreateUserRequest) 
 	if err := s.repo.Create(ctx, user); err != nil {
 		return nil, err
 	}
+
+	s.notifier.NotifyCreated(ctx, user.ID)
 
 	return user, nil
 }
@@ -136,11 +139,19 @@ func (s *UserService) Update(ctx context.Context, id uuid.UUID, req domain.Updat
 		return nil, err
 	}
 
+	s.notifier.NotifyUpdated(ctx, user.ID)
+
 	return user, nil
 }
 
 func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	s.notifier.NotifyDeleted(ctx, id)
+
+	return nil
 }
 
 func validateEmail(email string) error {

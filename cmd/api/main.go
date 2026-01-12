@@ -13,6 +13,7 @@ import (
 
 	"github.com/giannuccilli/user-api/internal/config"
 	"github.com/giannuccilli/user-api/internal/handler"
+	"github.com/giannuccilli/user-api/internal/notifier"
 	"github.com/giannuccilli/user-api/internal/repository/postgres"
 	"github.com/giannuccilli/user-api/internal/service"
 )
@@ -59,7 +60,11 @@ func main() {
 	logger.Info("connected to database")
 
 	userRepo := postgres.NewUserRepository(pool)
-	userService := service.NewUserService(userRepo)
+	failedEventRepo := postgres.NewFailedEventRepository(pool)
+	userNotifier := notifier.NewNotifier(cfg, logger, failedEventRepo)
+	defer userNotifier.Close()
+
+	userService := service.NewUserService(userRepo, userNotifier)
 	userHandler := handler.NewUserHandler(userService)
 
 	mux := http.NewServeMux()

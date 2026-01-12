@@ -19,96 +19,96 @@
 ## Phase 1: Setup
 
 ### Task 1.1: Agregar dependencia kafka-go
-- [ ] Ejecutar `go get github.com/segmentio/kafka-go`
-- [ ] Verificar `go.mod`
+- [X] Ejecutar `go get github.com/segmentio/kafka-go`
+- [X] Verificar `go.mod`
 
 ### Task 1.2: Actualizar docker-compose
-- [ ] Agregar servicio Kafka (KRaft mode)
-- [ ] Configurar puertos y variables de entorno
-- [ ] Verificar que levanta correctamente
+- [X] Agregar servicio Kafka (KRaft mode)
+- [X] Configurar puertos y variables de entorno
+- [X] Verificar que levanta correctamente
 
 ### Task 1.3: Actualizar configuración
-- [ ] Agregar `KafkaBrokers` a `Config`
-- [ ] Agregar `KafkaTopic` a `Config`
-- [ ] Cargar desde variables de entorno
+- [X] Agregar `KafkaBrokers` a `Config`
+- [X] Agregar `KafkaTopic` a `Config`
+- [X] Cargar desde variables de entorno
 
 ---
 
 ## Phase 2: Domain
 
 ### Task 2.1: Crear entidades de eventos
-- [ ] Crear `internal/domain/event.go`
-- [ ] Definir `EventType` (created, updated, deleted)
-- [ ] Definir `UserEvent` struct
-- [ ] Definir `EventData` struct
-- [ ] Definir `FailedEvent` struct
+- [X] Crear `internal/domain/event.go`
+- [X] Definir `EventType` (created, updated, deleted)
+- [X] Definir `UserEvent` struct
+- [X] Definir `EventData` struct
+- [X] Definir `FailedEvent` struct
 
 ### Task 2.2: Definir interfaces
-- [ ] Crear interfaz `UserNotifier` en domain
-- [ ] Métodos: `NotifyCreated`, `NotifyUpdated`, `NotifyDeleted`, `Close`
-- [ ] Crear interfaz `FailedEventRepository` en domain
-- [ ] Métodos: `Save`, `List`, `Delete`
+- [X] Crear interfaz `UserNotifier` en domain
+- [X] Métodos: `NotifyCreated`, `NotifyUpdated`, `NotifyDeleted`, `Close`
+- [X] Crear interfaz `FailedEventRepository` en domain
+- [X] Métodos: `Save`, `List`, `Delete`
 
 ---
 
 ## Phase 3: DLQ Repository
 
 ### Task 3.1: Crear migración para failed_events
-- [ ] Crear `migrations/002_create_failed_events.sql`
-- [ ] Crear tabla `failed_events`
-- [ ] Crear índices
+- [X] Crear `migrations/002_create_failed_events.sql`
+- [X] Crear tabla `failed_events`
+- [X] Crear índices
 
 ### Task 3.2: Implementar FailedEventRepository
-- [ ] Crear `internal/repository/postgres/failed_event.go`
-- [ ] Implementar `Save`
-- [ ] Implementar `List`
-- [ ] Implementar `Delete`
+- [X] Crear `internal/repository/postgres/failed_event.go`
+- [X] Implementar `Save`
+- [X] Implementar `List`
+- [X] Implementar `Delete`
 
 ---
 
 ## Phase 4: Notifier Layer
 
 ### Task 4.1: Implementar NoopNotifier
-- [ ] Crear `internal/notifier/noop.go`
-- [ ] Implementar interfaz `UserNotifier`
-- [ ] Loguear que las notificaciones están deshabilitadas (solo al inicio)
+- [X] Crear `internal/notifier/noop.go`
+- [X] Implementar interfaz `UserNotifier`
+- [X] Loguear que las notificaciones están deshabilitadas (solo al inicio)
 
 ### Task 4.2: Implementar KafkaNotifier con Retry
-- [ ] Crear `internal/notifier/kafka.go`
-- [ ] Implementar constructor `NewKafkaNotifier`
-- [ ] Implementar retry con backoff exponencial (1s, 2s, 4s)
-- [ ] Implementar `NotifyCreated` con retry
-- [ ] Implementar `NotifyUpdated` con retry
-- [ ] Implementar `NotifyDeleted` con retry
-- [ ] Implementar `Close`
-- [ ] Usar `userId` como partition key
-- [ ] Si todos los reintentos fallan, guardar en DLQ via `FailedEventRepository`
-- [ ] Loguear eventos publicados (INFO)
-- [ ] Loguear errores de publicación (ERROR)
-- [ ] Loguear eventos guardados en DLQ (WARN)
+- [X] Crear `internal/notifier/kafka.go`
+- [X] Implementar constructor `NewKafkaNotifier`
+- [X] Implementar retry con backoff exponencial (1s, 2s, 4s)
+- [X] Implementar `NotifyCreated` con retry
+- [X] Implementar `NotifyUpdated` con retry
+- [X] Implementar `NotifyDeleted` con retry
+- [X] Implementar `Close`
+- [X] Usar `userId` como partition key
+- [X] Si todos los reintentos fallan, guardar en DLQ via `FailedEventRepository`
+- [X] Loguear eventos publicados (INFO)
+- [X] Loguear errores de publicación (ERROR)
+- [X] Loguear eventos guardados en DLQ (WARN)
 
 ### Task 4.3: Factory para crear notifier
-- [ ] Crear función `NewNotifier(cfg, logger, failedEventRepo)`
-- [ ] Retornar `KafkaNotifier` si `KafkaBrokers` está configurado
-- [ ] Retornar `NoopNotifier` si no hay configuración
+- [X] Crear función `NewNotifier(cfg, logger, failedEventRepo)`
+- [X] Retornar `KafkaNotifier` si `KafkaBrokers` está configurado
+- [X] Retornar `NoopNotifier` si no hay configuración
 
 ---
 
 ## Phase 5: Integración con Service
 
 ### Task 5.1: Modificar UserService
-- [ ] Agregar `UserNotifier` como dependencia
-- [ ] Modificar constructor `NewUserService`
-- [ ] Llamar `NotifyCreated` después de crear usuario
-- [ ] Llamar `NotifyUpdated` después de actualizar usuario
-- [ ] Llamar `NotifyDeleted` después de eliminar usuario
-- [ ] No propagar errores de notificación (el notifier maneja DLQ)
+- [X] Agregar `UserNotifier` como dependencia
+- [X] Modificar constructor `NewUserService`
+- [X] Llamar `NotifyCreated` después de crear usuario
+- [X] Llamar `NotifyUpdated` después de actualizar usuario
+- [X] Llamar `NotifyDeleted` después de eliminar usuario
+- [X] No propagar errores de notificación (el notifier maneja DLQ)
 
 ### Task 5.2: Actualizar main.go
-- [ ] Inicializar `FailedEventRepository`
-- [ ] Inicializar notifier con factory (pasando failedEventRepo)
-- [ ] Pasar notifier al servicio
-- [ ] Cerrar notifier en shutdown
+- [X] Inicializar `FailedEventRepository`
+- [X] Inicializar notifier con factory (pasando failedEventRepo)
+- [X] Pasar notifier al servicio
+- [X] Cerrar notifier en shutdown
 
 ---
 
