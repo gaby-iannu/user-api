@@ -11,6 +11,8 @@ type Config struct {
 	LogLevel     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
+	KafkaBrokers string
+	KafkaTopic   string
 }
 
 func Load() *Config {
@@ -20,6 +22,8 @@ func Load() *Config {
 		LogLevel:     getEnv("LOG_LEVEL", "info"),
 		ReadTimeout:  getDuration("READ_TIMEOUT", 5*time.Second),
 		WriteTimeout: getDuration("WRITE_TIMEOUT", 10*time.Second),
+		KafkaBrokers: getEnv("KAFKA_BROKERS", ""),
+		KafkaTopic:   getEnv("KAFKA_TOPIC", "user-events"),
 	}
 }
 

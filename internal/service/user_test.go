@@ -84,6 +84,13 @@ func (m *mockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+type mockNotifier struct{}
+
+func (m *mockNotifier) NotifyCreated(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) NotifyUpdated(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) NotifyDeleted(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) Close() error                                              { return nil }
+
 func TestUserService_Create(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -140,7 +147,7 @@ func TestUserService_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newMockUserRepository()
-			svc := NewUserService(repo)
+			svc := NewUserService(repo, &mockNotifier{})
 
 			user, err := svc.Create(context.Background(), tt.req)
 
@@ -168,7 +175,7 @@ func TestUserService_Create(t *testing.T) {
 
 func TestUserService_Create_DuplicateEmail(t *testing.T) {
 	repo := newMockUserRepository()
-	svc := NewUserService(repo)
+	svc := NewUserService(repo, &mockNotifier{})
 
 	req := domain.CreateUserRequest{
 		Email:     "test@example.com",
@@ -189,7 +196,7 @@ func TestUserService_Create_DuplicateEmail(t *testing.T) {
 
 func TestUserService_GetByID(t *testing.T) {
 	repo := newMockUserRepository()
-	svc := NewUserService(repo)
+	svc := NewUserService(repo, &mockNotifier{})
 
 	req := domain.CreateUserRequest{
 		Email:     "test@example.com",
@@ -215,7 +222,7 @@ func TestUserService_GetByID(t *testing.T) {
 
 func TestUserService_List(t *testing.T) {
 	repo := newMockUserRepository()
-	svc := NewUserService(repo)
+	svc := NewUserService(repo, &mockNotifier{})
 
 	for i := 0; i < 5; i++ {
 		req := domain.CreateUserRequest{
@@ -248,7 +255,7 @@ func TestUserService_List(t *testing.T) {
 
 func TestUserService_Update(t *testing.T) {
 	repo := newMockUserRepository()
-	svc := NewUserService(repo)
+	svc := NewUserService(repo, &mockNotifier{})
 
 	req := domain.CreateUserRequest{
 		Email:     "test@example.com",
@@ -279,7 +286,7 @@ func TestUserService_Update(t *testing.T) {
 
 func TestUserService_Delete(t *testing.T) {
 	repo := newMockUserRepository()
-	svc := NewUserService(repo)
+	svc := NewUserService(repo, &mockNotifier{})
 
 	req := domain.CreateUserRequest{
 		Email:     "test@example.com",

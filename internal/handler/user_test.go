@@ -71,9 +71,16 @@ func (m *mockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+type mockNotifier struct{}
+
+func (m *mockNotifier) NotifyCreated(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) NotifyUpdated(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) NotifyDeleted(ctx context.Context, userID uuid.UUID) error { return nil }
+func (m *mockNotifier) Close() error                                              { return nil }
+
 func setupTestHandler() (*UserHandler, *mockUserRepository) {
 	repo := newMockUserRepository()
-	svc := service.NewUserService(repo)
+	svc := service.NewUserService(repo, &mockNotifier{})
 	handler := NewUserHandler(svc)
 	return handler, repo
 }
