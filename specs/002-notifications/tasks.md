@@ -136,9 +136,9 @@
 - [X] Test que `Delete` llama a `NotifyDeleted`
 
 ### Task 6.5: Integration tests [P]
-- [ ] Test publicación real a Kafka (requiere Kafka)
-- [ ] Test retry y fallback a DLQ
-- [ ] Verificar mensaje en topic
+- [X] Test publicación real a Kafka (requiere Kafka)
+- [X] Test retry y fallback a DLQ
+- [X] Verificar mensaje en topic
 
 ---
 
