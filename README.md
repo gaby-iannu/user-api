@@ -66,8 +66,10 @@ cd user-api
 
 | Script | Descripción |
 |--------|-------------|
-| `./scripts/run.sh` | Levanta PostgreSQL y ejecuta la API |
+| `./scripts/run.sh` | Levanta PostgreSQL, Kafka y ejecuta la API |
 | `./scripts/coverage.sh` | Ejecuta tests y genera reporte de cobertura |
+| `./scripts/kafka-events.sh` | Ver eventos en Kafka en tiempo real |
+| `./scripts/dlq-events.sh` | Ver eventos fallidos en la DLQ |
 
 ## Variables de entorno
 
@@ -195,6 +197,51 @@ Accede a http://localhost:8090 para ver los mensajes en Kafka.
 ### Sin Kafka
 
 Si `KAFKA_BROKERS` no está configurado, la API funciona normalmente sin publicar eventos.
+
+### Ejemplo de consumidor (Go)
+
+```go
+package main
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+
+    "github.com/segmentio/kafka-go"
+)
+
+type UserEvent struct {
+    EventID   string `json:"eventId"`
+    EventType string `json:"eventType"`
+    Timestamp string `json:"timestamp"`
+    Data      struct {
+        UserID string `json:"userId"`
+    } `json:"data"`
+}
+
+func main() {
+    reader := kafka.NewReader(kafka.ReaderConfig{
+        Brokers: []string{"localhost:9092"},
+        Topic:   "user-events",
+        GroupID: "my-consumer-group",
+    })
+    defer reader.Close()
+
+    for {
+        msg, err := reader.ReadMessage(context.Background())
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        var event UserEvent
+        json.Unmarshal(msg.Value, &event)
+        
+        fmt.Printf("Event: %s, UserID: %s\n", event.EventType, event.Data.UserID)
+    }
+}
+```
 
 ## Desarrollo local
 

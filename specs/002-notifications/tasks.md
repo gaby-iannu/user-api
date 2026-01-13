@@ -148,12 +148,12 @@
 - [X] Agregar sección de notificaciones
 - [X] Documentar variables de entorno de Kafka
 - [X] Documentar estrategia de retry y DLQ
-- [ ] Agregar ejemplo de consumo de eventos
+- [X] Agregar ejemplo de consumo de eventos
 
 ### Task 7.2: Actualizar scripts
 - [X] Modificar `run.sh` para levantar Kafka (opcional)
-- [ ] Agregar script para ver eventos en Kafka
-- [ ] Agregar script para ver eventos fallidos en DLQ
+- [X] Agregar script para ver eventos en Kafka
+- [X] Agregar script para ver eventos fallidos en DLQ
 
 ---
 
