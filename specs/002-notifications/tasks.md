@@ -115,25 +115,25 @@
 ## Phase 6: Testing
 
 ### Task 6.1: Unit tests - Domain
-- [ ] Test `EventType` values
-- [ ] Test `UserEvent` serialización JSON
-- [ ] Test `FailedEvent` struct
+- [X] Test `EventType` values
+- [X] Test `UserEvent` serialización JSON
+- [X] Test `FailedEvent` struct
 
 ### Task 6.2: Unit tests - FailedEventRepository
-- [ ] Test `Save` evento fallido
-- [ ] Test `List` con paginación
-- [ ] Test `Delete`
+- [X] Test `Save` evento fallido
+- [X] Test `List` con paginación
+- [X] Test `Delete`
 
 ### Task 6.3: Unit tests - Notifier
-- [ ] Test `NoopNotifier` no falla
-- [ ] Test retry logic con mock de Kafka
-- [ ] Test que después de 3 fallos guarda en DLQ
+- [X] Test `NoopNotifier` no falla
+- [X] Test retry logic con mock de Kafka
+- [X] Test que después de 3 fallos guarda en DLQ
 
 ### Task 6.4: Unit tests - Service
-- [ ] Crear mock de `UserNotifier`
-- [ ] Test que `Create` llama a `NotifyCreated`
-- [ ] Test que `Update` llama a `NotifyUpdated`
-- [ ] Test que `Delete` llama a `NotifyDeleted`
+- [X] Crear mock de `UserNotifier`
+- [X] Test que `Create` llama a `NotifyCreated`
+- [X] Test que `Update` llama a `NotifyUpdated`
+- [X] Test que `Delete` llama a `NotifyDeleted`
 
 ### Task 6.5: Integration tests [P]
 - [ ] Test publicación real a Kafka (requiere Kafka)
@@ -145,13 +145,13 @@
 ## Phase 7: Documentación
 
 ### Task 7.1: Actualizar README
-- [ ] Agregar sección de notificaciones
-- [ ] Documentar variables de entorno de Kafka
-- [ ] Documentar estrategia de retry y DLQ
+- [X] Agregar sección de notificaciones
+- [X] Documentar variables de entorno de Kafka
+- [X] Documentar estrategia de retry y DLQ
 - [ ] Agregar ejemplo de consumo de eventos
 
 ### Task 7.2: Actualizar scripts
-- [ ] Modificar `run.sh` para levantar Kafka (opcional)
+- [X] Modificar `run.sh` para levantar Kafka (opcional)
 - [ ] Agregar script para ver eventos en Kafka
 - [ ] Agregar script para ver eventos fallidos en DLQ
 

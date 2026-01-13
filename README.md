@@ -25,6 +25,8 @@ specs/
 | Router | net/http (ServeMux) |
 | Base de datos | PostgreSQL 16 |
 | Driver DB | pgx/v5 |
+| Message Broker | Apache Kafka |
+| Cliente Kafka | segmentio/kafka-go |
 | Logging | log/slog |
 | Contenedores | Docker Compose |
 
@@ -39,6 +41,7 @@ internal/
 ├── config/                  # Configuración
 ├── domain/                  # Entidades y interfaces
 ├── handler/                 # HTTP handlers
+├── notifier/                # Publicación de eventos a Kafka
 ├── repository/postgres/     # Implementación PostgreSQL
 └── service/                 # Lógica de negocio
 ```
@@ -75,6 +78,8 @@ cd user-api
 | `LOG_LEVEL` | No | info | Nivel de logging (debug, info, warn, error) |
 | `READ_TIMEOUT` | No | 5s | Timeout de lectura HTTP |
 | `WRITE_TIMEOUT` | No | 10s | Timeout de escritura HTTP |
+| `KAFKA_BROKERS` | No | - | Lista de brokers Kafka (ej: localhost:9092) |
+| `KAFKA_TOPIC` | No | user-events | Topic para eventos de usuario |
 
 ### Connection string local
 
@@ -152,16 +157,61 @@ docker-compose up -d
 go test ./internal/repository/postgres/... -v
 ```
 
+## Notificaciones (Kafka)
+
+La API publica eventos a Kafka cuando se crean, actualizan o eliminan usuarios.
+
+### Eventos
+
+| Evento | Descripción |
+|--------|-------------|
+| `user.created` | Usuario creado |
+| `user.updated` | Usuario actualizado |
+| `user.deleted` | Usuario eliminado |
+
+### Estructura del evento
+
+```json
+{
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "user.created",
+  "timestamp": "2026-01-12T19:00:00Z",
+  "data": {
+    "userId": "123e4567-e89b-12d3-a456-426614174000"
+  }
+}
+```
+
+### Resiliencia
+
+- **Retry**: 3 intentos con backoff exponencial (1s, 2s, 4s)
+- **DLQ**: Si todos los reintentos fallan, el evento se guarda en la tabla `failed_events`
+- **No bloquea**: La operación principal (CRUD) nunca falla por errores de Kafka
+
+### Kafka UI
+
+Accede a http://localhost:8090 para ver los mensajes en Kafka.
+
+### Sin Kafka
+
+Si `KAFKA_BROKERS` no está configurado, la API funciona normalmente sin publicar eventos.
+
 ## Desarrollo local
 
 ```bash
-# Levantar solo PostgreSQL
+# Levantar PostgreSQL y Kafka
 docker-compose up -d
 
-# Ejecutar la API manualmente
-DATABASE_URL="postgres://userapi:userapi123@localhost:5432/userapi?sslmode=disable" go run ./cmd/api
+# Ejecutar la API con Kafka
+DATABASE_URL="postgres://userapi:userapi123@localhost:5432/userapi?sslmode=disable" \
+KAFKA_BROKERS="localhost:9092" \
+go run ./cmd/api
 
-# Detener PostgreSQL
+# Ejecutar la API sin Kafka
+DATABASE_URL="postgres://userapi:userapi123@localhost:5432/userapi?sslmode=disable" \
+go run ./cmd/api
+
+# Detener servicios
 docker-compose down
 
 # Resetear base de datos
@@ -193,7 +243,12 @@ user-api/
 │   ├── run.sh
 │   └── coverage.sh
 ├── specs/
-│   └── 001-user-api/
+│   ├── 001-user-api/
+│   │   ├── spec.md
+│   │   ├── plan.md
+│   │   ├── data-model.md
+│   │   └── tasks.md
+│   └── 002-notifications/
 │       ├── spec.md
 │       ├── plan.md
 │       ├── data-model.md
